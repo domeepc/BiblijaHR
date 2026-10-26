@@ -1,0 +1,18 @@
+---
+import Base from '../layouts/Base.astro';
+
+const base = import.meta.env.BASE_URL.endsWith('/') ? import.meta.env.BASE_URL : import.meta.env.BASE_URL + '/';
+---
+<Base title="Šarićeva Biblija – mreža stihova" page="home">
+  <main class="wrap home">
+    <section class="hero">
+      <p class="overline">Biblija · prijevod Ivana Šarića</p>
+      <h1>Čitajte Pismo i pratite<br>kako se poziva samo na sebe</h1>
+      <p>Uz svaki redak raste grana s njegovim unakrsnim referencama. Mreža prikazuje kako su knjige i stihovi povezani kroz cijelu Bibliju. Knjigu, glavu ili redak odaberite u polju iznad.</p>
+      <div class="hero-actions">
+        <a class="pill-link" href={`${base}post/1/`} data-read-link>Počni čitati</a>
+        <a class="pill-link" href={`${base}mreza/`}>Otvori mrežu</a>
+      </div>
+    </section>
+  </main>
+</Base>

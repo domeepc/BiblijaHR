@@ -1,0 +1,130 @@
+---
+import '../styles/global.css';
+import { getBible } from '../lib/bible';
+
+interface Props {
+  title: string;
+  description?: string;
+  page: 'home' | 'read' | 'net';
+  /** current book index and chapter, on reading pages */
+  at?: { b: number; ch: number };
+}
+const { title, description = 'Biblija u prijevodu Ivana Šarića s mrežom unakrsnih referenci.', page, at } = Astro.props;
+const base = import.meta.env.BASE_URL.endsWith('/') ? import.meta.env.BASE_URL : import.meta.env.BASE_URL + '/';
+const { books } = getBible();
+const booksJson = JSON.stringify(books.map(({ n, a, slug, t, chs, vc }) => ({ n, a, slug, t, chs, vc })));
+const readHref = at ? `${base}${books[at.b].slug}/${at.ch}/` : `${base}iv/3/`;
+const themes = [['papir', 'Papir', '#FBF8F2', '#1E1A16'], ['sepija', 'Sepija', '#F2E6D0', '#3A2E20'], ['noc', 'Noć', '#18181B', '#DAD4C8']];
+const fonts = [['lit', 'Literata', "'Literata Variable', Georgia, serif"], ['gar', 'Garamond', "'EB Garamond', Georgia, serif"], ['sans', 'Plex Sans', "'IBM Plex Sans', sans-serif"]];
+const picks = [
+  { key: 'book', label: 'Knjiga', value: at ? books[at.b].n : 'Odaberi' },
+  { key: 'ch', label: 'Glava', value: at ? String(at.ch) : '—' },
+  { key: 'v', label: 'Redak', value: '—' },
+];
+---
+<!doctype html>
+<html lang="hr" data-theme="papir" data-font="lit" data-base={base}>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{title}</title>
+  <meta name="description" content={description}>
+  <link rel="icon" href={`${base}favicon.svg`} type="image/svg+xml">
+  <script is:inline>
+    try {
+      const p = JSON.parse(localStorage.getItem('biblija:prefs') || '{}');
+      const h = document.documentElement;
+      if (p.theme) h.dataset.theme = p.theme;
+      if (p.font) h.dataset.font = p.font;
+      if (p.size) h.style.setProperty('--reader-size', p.size + 'px');
+    } catch (e) {}
+  </script>
+</head>
+<body data-page={page}>
+  <header class="appbar">
+    <div class="wrap appbar-row">
+      <a class="brand" href={base}>
+        <svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true">
+          <path class="stroke" d="M4 14h8M12 14c5 0 6-7 11-7M12 14c5 0 6 7 11 7" fill="none" stroke-width="1.6" stroke-linecap="round" />
+          <circle class="dot-ink" cx="4" cy="14" r="2.6" /><circle class="dot-ot" cx="23" cy="7" r="2.6" /><circle class="dot-nt" cx="23" cy="21" r="2.6" />
+        </svg>
+        <span><b>Mreža stihova</b><small>Biblija · prijevod Ivana Šarića</small></span>
+      </a>
+      <nav class="seg" aria-label="Način prikaza">
+        <a href={readHref} data-read-link={at ? undefined : ''} aria-current={page === 'read' ? 'page' : undefined}>Čitanje</a>
+        <a href={`${base}mreza/`} data-net-link aria-current={page === 'net' ? 'page' : undefined}>Mreža</a>
+      </nav>
+      <div class="appbar-end">
+        {page !== 'net' && <button class="round-btn" popovertarget="appearance" aria-label="Izgled teksta">Aa</button>}
+      </div>
+    </div>
+    <div class="wrap appbar-row tools">
+      <div class="picker" role="group" aria-label="Odabir knjige, glave i retka" data-b={at?.b} data-ch={at?.ch}>
+        {picks.map((p) => (
+          <div class={`pick pick-${p.key}`}>
+            <button type="button" class="pick-btn" id={`pick-${p.key}-btn`} aria-haspopup="dialog" aria-expanded="false" aria-controls={`pick-${p.key}-panel`}>
+              <span class="pick-label">{p.label}</span>
+              <span class="pick-value" data-value>{p.value}</span>
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>
+            </button>
+            <div class="pick-panel" id={`pick-${p.key}-panel`} role="dialog" aria-label={p.label} hidden>
+              {p.key === 'book' && (
+                <>
+                  <input class="field pick-filter" type="text" autocomplete="off" spellcheck="false" placeholder="Traži knjigu…" aria-label="Traži knjigu" aria-controls="pick-book-list">
+                  <ul class="pick-list" id="pick-book-list" role="listbox" aria-label="Knjige"></ul>
+                </>
+              )}
+              {p.key !== 'book' && (
+                <>
+                  <p class="pick-title" data-title></p>
+                  {p.key === 'v' && <button type="button" class="pick-whole" data-whole>Cijela glava, od početka</button>}
+                  <div class="pick-grid" data-grid></div>
+                  {p.key === 'v' && <p class="pick-preview" data-preview aria-live="polite"></p>}
+                </>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </header>
+
+  {page !== 'net' && (
+    <div id="appearance" popover class="appearance" aria-label="Izgled teksta">
+      <div class="themes" role="group" aria-label="Tema">
+        {themes.map(([k, label, bg, ink]) => (
+          <button type="button" data-theme-pick={k} aria-pressed="false">
+            <span class="swatch" style={`background:${bg};color:${ink}`}>Aa</span>{label}
+          </button>
+        ))}
+      </div>
+      <div class="sizer">
+        <button type="button" data-size="-1" aria-label="Manja slova" style="font-size:14px">A</button>
+        <output data-size-out>20 px</output>
+        <button type="button" data-size="1" aria-label="Veća slova" style="font-size:22px">A</button>
+      </div>
+      <div class="fonts" role="group" aria-label="Pismo">
+        {fonts.map(([k, label, css]) => <button type="button" data-font-pick={k} aria-pressed="false" style={`font-family:${css}`}>{label}</button>)}
+      </div>
+    </div>
+  )}
+
+  <slot />
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <p>Tekst: Biblija, prijevod Ivana Šarića (CroSaric). Unakrsne reference: <a href="https://www.openbible.info/labs/cross-references/">openbible.info</a> (CC BY), preuzeto iz <a href="https://github.com/scrollmapper/bible_databases">scrollmapper/bible_databases</a>. „Glasovi” su broj korisnika koji su potvrdili vezu.</p>
+      <p>Šarić u nekim psalmima naslov broji kao 1. redak, pa se reference iz engleske numeracije tamo mogu pomaknuti za jedan redak.</p>
+    </div>
+  </footer>
+
+  <script is:inline type="application/json" id="books-json" set:html={booksJson} />
+  <script>
+    import { initPicker } from '../scripts/picker';
+    import { initPrefs } from '../scripts/prefs';
+
+    initPicker();
+    initPrefs();
+  </script>
+</body>
+</html>
