@@ -26,7 +26,7 @@ for (let i = book.s; i < book.s + book.c; i++) {
     i, num: verseOf(B.k, i), text: B.v[i] || '—', count: links.length,
     twigs: links.slice(0, nTw).map((l, j) => {
       const y = 22 + (j - (nTw - 1) / 2) * 7.5;
-      return { y, cls: 'twig-' + testament(l.i), d: `M64 22 C 84 22, 88 ${y}, 108 ${y}` };
+      return { y, cls: 'twig-' + testament(l.i), d: `M76 22 C 96 22, 100 ${y}, 120 ${y}` };
     }),
     menu: links.slice(0, MENU_MAX).map((l) => ({
       href: hrefOf(l.i), ref: label(l.i, l.span), votes: l.v, cls: testament(l.i), text: snippet(B.v[l.i] || '—'),
@@ -55,16 +55,15 @@ const netHref = (v: number) => `${base}mreza/?v=${book.slug}.${ch}.${v}`;
     <div class="verses" lang="hr">
       {verses.map((v) => (
         <div class="verse" id={`v${v.num}`}>
-          <p><a class="vnum" href={`#v${v.num}`} aria-label={`Redak ${v.num}`}>{v.num}</a><span class="vtext">{v.text}</span>{v.count > 0 && <span class="vend" aria-hidden="true"></span>}</p>
-          {v.count > 0 && <svg class="lead" aria-hidden="true"><path /><circle r="2.4" /></svg>}
+          <p><a class="vnum" href={`#v${v.num}`} aria-label={`Redak ${v.num}`}>{v.num}</a><span class="vtext">{v.text}</span></p>
           <div>
             {v.count > 0 && (
               <button class="branch" type="button" popovertarget={`m${v.num}`} aria-label={`Grana retka ${v.num}: ${v.count} referenci`}>
-                <svg viewBox="0 0 176 44" preserveAspectRatio="xMinYMid meet" aria-hidden="true">
-                  <path class="stem" d="M0 22 C 24 22, 36 22, 64 22" />
-                  {v.twigs.map((t) => (<><path class="stem" d={t.d} /><circle class={t.cls} cx="112" cy={t.y} r="3.6" /></>))}
-                  <rect class="pill" x="124" y="12" width="44" height="20" rx="10" />
-                  <text class="pill-text" x="146" y="22.5">{v.count} ▾</text>
+                <span class="trunk"></span>
+                <svg viewBox="76 0 112 44" aria-hidden="true">
+                  {v.twigs.map((t) => (<><path class="stem" d={t.d} /><circle class={t.cls} cx="124" cy={t.y} r="3.6" /></>))}
+                  <rect class="pill" x="136" y="12" width="44" height="20" rx="10" />
+                  <text class="pill-text" x="158" y="22.5">{v.count} ▾</text>
                 </svg>
               </button>
             )}
@@ -124,29 +123,6 @@ const netHref = (v: number) => `${base}mreza/?v=${book.slug}.${ch}.${v}`;
   const reposition = () => document.querySelectorAll<HTMLElement>('.refmenu:popover-open').forEach(place);
   window.addEventListener('scroll', reposition, { passive: true });
   window.addEventListener('resize', reposition);
-
-  // Grow each branch out of the end of its verse: put the branch on the verse's last line
-  // and draw the lead from the last word across to the margin.
-  function layoutBranches() {
-    const jobs = [...document.querySelectorAll<HTMLElement>('.verse')].flatMap((v) => {
-      const end = v.querySelector<HTMLElement>('.vend'), br = v.querySelector<HTMLElement>('.branch');
-      if (!end || !br) return [];
-      const vr = v.getBoundingClientRect(), er = end.getBoundingClientRect();
-      return [{ v, br, x: er.left - vr.left + 6, y: er.top + er.height / 2 - vr.top, bx: br.parentElement!.getBoundingClientRect().left - vr.left }];
-    });
-    for (const { v, br, x, y, bx } of jobs) {   // all reads above, all writes here
-      br.style.marginTop = `${Math.round(y - 22)}px`;
-      const path = v.querySelector('.lead path')!, dot = v.querySelector('.lead circle')!;
-      path.setAttribute('d', x < bx - 2 ? `M${x} ${y} H${bx}` : '');
-      dot.setAttribute('cx', String(Math.min(x, bx)));
-      dot.setAttribute('cy', String(y));
-    }
-  }
-  const versesEl = document.querySelector('.verses');
-  if (versesEl) {
-    new ResizeObserver(() => layoutBranches()).observe(versesEl);
-    document.fonts?.ready.then(layoutBranches);
-  }
 
   // remember where we are reading
   const main = document.querySelector<HTMLElement>('.reader')!;
