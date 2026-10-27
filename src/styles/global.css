@@ -192,7 +192,10 @@ button { cursor: pointer; }
 
 @media (max-width: 640px) {
   .appbar-end { flex-basis: 44px; }
-  .verse { grid-template-columns: minmax(0, 1fr) 100px; }
+  /* the branch sits on its own line under the verse, text gets the full width */
+  .verse { grid-template-columns: minmax(0, 1fr); }
+  .verse p { padding: 3px 0 0; }
+  .branch { width: 100px; margin: 2px 0 6px !important; }
   .lead { display: none; }
   .branch .branch-lg { display: none; }
   .branch .branch-sm { display: block; }
