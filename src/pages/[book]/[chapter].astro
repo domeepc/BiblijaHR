@@ -25,8 +25,9 @@ for (let i = book.s; i < book.s + book.c; i++) {
   verses.push({
     i, num: verseOf(B.k, i), text: B.v[i] || '—', count: links.length,
     twigs: links.slice(0, nTw).map((l, j) => {
-      const y = 22 + (j - (nTw - 1) / 2) * 7.5;
-      return { y, cls: 'twig-' + testament(l.i), d: `M64 22 C 84 22, 88 ${y}, 108 ${y}` };
+      // desktop branch, and a shorter, larger one for phones (see .branch-sm)
+      const y = 22 + (j - (nTw - 1) / 2) * 7.5, ym = 22 + (j - (nTw - 1) / 2) * 8;
+      return { y, ym, cls: 'twig-' + testament(l.i), d: `M76 22 C 96 22, 100 ${y}, 120 ${y}`, dm: `M6 22 C 20 22, 22 ${ym}, 38 ${ym}` };
     }),
     menu: links.slice(0, MENU_MAX).map((l) => ({
       href: hrefOf(l.i), ref: label(l.i, l.span), votes: l.v, cls: testament(l.i), text: snippet(B.v[l.i] || '—'),
@@ -60,11 +61,17 @@ const netHref = (v: number) => `${base}mreza/?v=${book.slug}.${ch}.${v}`;
           <div>
             {v.count > 0 && (
               <button class="branch" type="button" popovertarget={`m${v.num}`} aria-label={`Grana retka ${v.num}: ${v.count} referenci`}>
-                <svg viewBox="0 0 176 44" preserveAspectRatio="xMinYMid meet" aria-hidden="true">
-                  <path class="stem" d="M0 22 C 24 22, 36 22, 64 22" />
-                  {v.twigs.map((t) => (<><path class="stem" d={t.d} /><circle class={t.cls} cx="112" cy={t.y} r="3.6" /></>))}
-                  <rect class="pill" x="124" y="12" width="44" height="20" rx="10" />
-                  <text class="pill-text" x="146" y="22.5">{v.count} ▾</text>
+                <svg class="branch-lg" viewBox="0 0 188 44" preserveAspectRatio="xMinYMid meet" aria-hidden="true">
+                  <path class="stem" d="M0 22 C 24 22, 36 22, 76 22" />
+                  {v.twigs.map((t) => (<><path class="stem" d={t.d} /><circle class={t.cls} cx="124" cy={t.y} r="3.6" /></>))}
+                  <rect class="pill" x="136" y="12" width="44" height="20" rx="10" />
+                  <text class="pill-text" x="158" y="22.5">{v.count} ▾</text>
+                </svg>
+                <svg class="branch-sm" viewBox="0 0 100 44" preserveAspectRatio="xMinYMid meet" aria-hidden="true">
+                  <path class="stem" d="M0 22 H6" />
+                  {v.twigs.map((t) => (<><path class="stem" d={t.dm} /><circle class={t.cls} cx="43" cy={t.ym} r="4.4" /></>))}
+                  <rect class="pill" x="53" y="10" width="46" height="24" rx="12" />
+                  <text class="pill-text" x="76" y="22.5">{v.count} ▾</text>
                 </svg>
               </button>
             )}
