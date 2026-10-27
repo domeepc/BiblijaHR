@@ -61,7 +61,8 @@ const netHref = (v: number) => `${base}mreza/?v=${book.slug}.${ch}.${v}`;
             {v.count > 0 && (
               <button class="branch" type="button" popovertarget={`m${v.num}`} aria-label={`Grana retka ${v.num}: ${v.count} referenci`}>
                 <svg viewBox="0 0 188 44" preserveAspectRatio="xMinYMid meet" aria-hidden="true">
-                  <path class="stem" d="M0 22 C 24 22, 36 22, 76 22" />
+                  <path class="stem rise" d="M1 -4 V 22" /><circle class="rise" cx="1" cy="-4" r="2.4" />
+                  <path class="stem" d="M0 22 H 76" />
                   {v.twigs.map((t) => (<><path class="stem" d={t.d} /><circle class={t.cls} cx="124" cy={t.y} r="3.6" /></>))}
                   <rect class="pill" x="136" y="12" width="44" height="20" rx="10" />
                   <text class="pill-text" x="158" y="22.5">{v.count} ▾</text>
