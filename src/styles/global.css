@@ -155,7 +155,7 @@ button { cursor: pointer; }
 .chapter-head { text-align: center; }
 .chapter-head h1 { margin: 10px 0 0; font-family: var(--reader-font); font-weight: 600; font-size: 44px; line-height: 1.1; }
 .ornament { display: block; margin: 16px auto 40px; stroke: var(--muted); fill: none; }
-.verses { font-family: var(--reader-font); font-size: var(--reader-size); line-height: 1.75; }
+.verses { max-width: 38em; margin: 0 auto; font-family: var(--reader-font); font-size: var(--reader-size); line-height: 1.75; }
 /* each branch sits on its own line under its verse; the rise points up to it */
 .verse { position: relative; scroll-margin-top: 140px; }
 .verse p { margin: 0; padding: 3px 0 0; text-align: justify; hyphens: auto; -webkit-hyphens: auto; }
