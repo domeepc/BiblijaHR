@@ -176,7 +176,7 @@ button { cursor: pointer; }
 .trunk { position: relative; flex: 1; }
 .trunk::before {
   content: ''; position: absolute; left: 0; right: 0; top: -4px; height: 26.65px; box-sizing: border-box;
-  border: solid var(--stem); border-width: 0 0 1.3px 1.3px; opacity: 0.55; transition: opacity 0.2s, border-color 0.2s;
+  border: solid var(--stem); border-width: 0 0 1.3px 1.3px; border-bottom-left-radius: 8px; opacity: 0.55; transition: opacity 0.2s, border-color 0.2s;
 }
 .trunk::after { content: ''; position: absolute; left: -1.75px; top: -6.4px; width: 4.8px; height: 4.8px; border-radius: 50%; background: var(--stem); opacity: 0.7; }
 .branch svg { display: block; flex: none; width: 112px; height: 44px; overflow: visible; }
