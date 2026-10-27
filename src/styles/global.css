@@ -193,6 +193,7 @@ button { cursor: pointer; }
 @media (max-width: 640px) {
   .appbar-end { flex-basis: 44px; }
   .verse { grid-template-columns: minmax(0, 1fr) 100px; }
+  .lead { display: none; }
   .branch .branch-lg { display: none; }
   .branch .branch-sm { display: block; }
   .branch-sm .pill-text { font-size: 12.5px; }
