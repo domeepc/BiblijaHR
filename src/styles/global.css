@@ -188,19 +188,14 @@ button { cursor: pointer; }
 .branch:hover circle, .branch[aria-expanded='true'] circle, .verse:target .branch circle { opacity: 1; }
 .branch[aria-expanded='true'] .pill { fill: var(--ink); stroke: var(--ink); }
 .branch[aria-expanded='true'] .pill-text { fill: var(--bg); }
-.branch .branch-sm { display: none; }
 
 @media (max-width: 640px) {
   .appbar-end { flex-basis: 44px; }
   /* the branch sits on its own line under the verse, text gets the full width */
   .verse { grid-template-columns: minmax(0, 1fr); }
   .verse p { padding: 3px 0 0; }
-  .branch { width: 100px; margin: 2px 0 6px !important; }
+  .branch { width: 188px; margin: 2px 0 6px !important; }
   .lead { display: none; }
-  .branch .branch-lg { display: none; }
-  .branch .branch-sm { display: block; }
-  .branch-sm .pill-text { font-size: 12.5px; }
-  .branch-sm .stem { stroke-width: 1.5; }
 }
 
 .refmenu {
