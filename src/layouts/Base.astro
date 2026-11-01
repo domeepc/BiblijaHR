@@ -55,7 +55,7 @@ const picks = [
         <a href={`${base}mreza/`} data-net-link aria-current={page === 'net' ? 'page' : undefined}>Mreža</a>
       </nav>
       <div class="appbar-end">
-        {page !== 'net' && <button class="round-btn" popovertarget="appearance" aria-label="Izgled teksta">Aa</button>}
+        {page === 'read' && <button class="round-btn" popovertarget="appearance" aria-label="Izgled teksta">Aa</button>}
       </div>
     </div>
     <div class="wrap appbar-row tools">
@@ -67,7 +67,7 @@ const picks = [
               <span class="pick-value" data-value>{p.value}</span>
               <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>
             </button>
-            <div class="pick-panel" id={`pick-${p.key}-panel`} role="dialog" aria-label={p.label} hidden>
+            <div class="pick-panel" id={`pick-${p.key}-panel`} role="dialog" aria-label={p.label} data-lenis-prevent hidden>
               {p.key === 'book' && (
                 <>
                   <input class="field pick-filter" type="text" autocomplete="off" spellcheck="false" placeholder="Traži knjigu…" aria-label="Traži knjigu" aria-controls="pick-book-list">
@@ -89,7 +89,7 @@ const picks = [
     </div>
   </header>
 
-  {page !== 'net' && (
+  {page === 'read' && (
     <div id="appearance" popover class="appearance" aria-label="Izgled teksta">
       <div class="themes" role="group" aria-label="Tema">
         {themes.map(([k, label, bg, ink]) => (

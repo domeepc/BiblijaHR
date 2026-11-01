@@ -21,13 +21,8 @@ const verses = [];
 for (let i = book.s; i < book.s + book.c; i++) {
   if (chapterOf(B.k, i) !== ch) continue;
   const links = linksOf(i);
-  const nTw = Math.min(5, Math.max(1, Math.ceil(Math.log2(links.length + 1))));
   verses.push({
     i, num: verseOf(B.k, i), text: B.v[i] || '—', count: links.length,
-    twigs: links.slice(0, nTw).map((l, j) => {
-      const y = 22 + (j - (nTw - 1) / 2) * 7.5;
-      return { y, cls: 'twig-' + testament(l.i), d: `M76 22 C 96 22, 100 ${y}, 120 ${y}` };
-    }),
     menu: links.slice(0, MENU_MAX).map((l) => ({
       href: hrefOf(l.i), ref: label(l.i, l.span), votes: l.v, cls: testament(l.i), text: snippet(B.v[l.i] || '—'),
     })),
@@ -44,30 +39,24 @@ const netHref = (v: number) => `${base}mreza/?v=${book.slug}.${ch}.${v}`;
 ---
 <Base title={`${book.n} ${ch} – Šarićeva Biblija`} description={`${book.n}, ${ch}. glava, prijevod Ivana Šarića, s unakrsnim referencama.`} page="read" at={{ b, ch }}>
   <main class="reader" data-slug={book.slug} data-ch={ch}>
-    <div class="chapter-head">
-      <p class="overline">{book.n}</p>
-      <h1>Glava {ch}</h1>
+    <header class="chapter-head" aria-labelledby="chapter-title">
+      <p class="reader-kicker">{book.t ? 'Novi zavjet' : 'Stari zavjet'}</p>
+      <h1 id="chapter-title"><span class="chapter-book-title">{book.n}</span><span class="chapter-number">Glava {ch}</span></h1>
       <svg class="ornament" width="140" height="16" viewBox="0 0 140 16" aria-hidden="true">
-        <path d="M4 8h54M82 8h54" stroke-width="1" /><path d="M70 2l6 6-6 6-6-6z" stroke-width="1.2" />
+        <path d="M4 8h54M82 8h54" stroke-width="1" /><circle cx="70" cy="8" r="5" stroke-width="1.2" />
       </svg>
-    </div>
+      <p class="chapter-meta">{verses.length} redaka <span>·</span> Prijevod Ivana Šarića</p>
+    </header>
 
     <div class="verses" lang="hr">
       {verses.map((v) => (
         <div class="verse" id={`v${v.num}`}>
-          <p><a class="vnum" href={`#v${v.num}`} aria-label={`Redak ${v.num}`}>{v.num}</a><span class="vtext">{v.text}</span></p>
-          <div>
-            {v.count > 0 && (
-              <button class="branch" type="button" popovertarget={`m${v.num}`} aria-label={`Grana retka ${v.num}: ${v.count} referenci`}>
-                <span class="trunk"></span>
-                <svg viewBox="76 0 112 44" aria-hidden="true">
-                  {v.twigs.map((t) => (<><path class="stem" d={t.d} /><circle class={t.cls} cx="124" cy={t.y} r="3.6" /></>))}
-                  <rect class="pill" x="136" y="12" width="44" height="20" rx="10" />
-                  <text class="pill-text" x="158" y="22.5">{v.count} ▾</text>
-                </svg>
-              </button>
-            )}
-          </div>
+          <p><a class="vnum" href={`#v${v.num}`} aria-label={`Redak ${v.num}`}>{v.num}</a><span class="vtext">{v.text}{v.count > 0 && (
+            <button class="branch" type="button" popovertarget={`m${v.num}`} aria-controls={`m${v.num}`} aria-expanded="false" aria-label={`Reference retka ${v.num}: ${v.count} unakrsnih referenci`}>
+              <span class="branch-count">{v.count}</span>
+              <svg class="icon branch-chevron" viewBox="0 0 16 16" aria-hidden="true"><path d="m4 6 4 4 4-4" /></svg>
+            </button>
+          )}</span></p>
           {v.count > 0 && (
             <div class="refmenu" id={`m${v.num}`} popover aria-label={`Reference za ${book.a} ${ch},${v.num}`}>
               <div class="refmenu-head">
@@ -103,6 +92,41 @@ const netHref = (v: number) => `${base}mreza/?v=${book.slug}.${ch}.${v}`;
 </Base>
 
 <script>
+  import { gsap } from 'gsap';
+  import Lenis from 'lenis';
+  import { ScrollTrigger } from 'gsap/ScrollTrigger';
+
+  gsap.registerPlugin(ScrollTrigger);
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+  if (!reduceMotion.matches) {
+    const lenis = new Lenis({ lerp: 0.095, smoothWheel: true, allowNestedScroll: true });
+    lenis.on('scroll', ScrollTrigger.update);
+    const tick = (time: number) => lenis.raf(time * 1000);
+    gsap.ticker.add(tick);
+    gsap.ticker.lagSmoothing(0);
+    const ctx = gsap.context(() => {
+      gsap.from('.chapter-book-title', { y: 14, duration: 0.7, ease: 'power3.out' });
+      gsap.from('.chapter-head .ornament', { scaleX: 0.7, duration: 0.8, delay: 0.08, ease: 'power2.out' });
+      gsap.from('.chapter-meta', { y: 8, duration: 0.55, delay: 0.12, ease: 'power2.out' });
+      gsap.from('.chapter-nav', { y: 12, duration: 0.55, ease: 'power2.out', scrollTrigger: { trigger: '.chapter-nav', start: 'top 95%', once: true } });
+    });
+    ScrollTrigger.refresh();
+    document.fonts?.ready.then(() => ScrollTrigger.refresh());
+    const onVisibility = () => { if (document.hidden) gsap.ticker.sleep(); else gsap.ticker.wake(); };
+    document.addEventListener('visibilitychange', onVisibility);
+    let stopped = false;
+    const stop = () => {
+      if (stopped) return;
+      stopped = true;
+      ctx.revert(); lenis.destroy(); gsap.ticker.remove(tick);
+      document.removeEventListener('visibilitychange', onVisibility);
+      reduceMotion.removeEventListener('change', onMotionPreference);
+    };
+    const onMotionPreference = (event: MediaQueryListEvent) => { if (event.matches) stop(); };
+    reduceMotion.addEventListener('change', onMotionPreference);
+    document.addEventListener('astro:before-swap', stop, { once: true });
+  }
+
   // Place each reference menu under the branch that opened it (popovers live in the top layer).
   function place(menu: HTMLElement) {
     const btn = document.querySelector<HTMLElement>(`.branch[popovertarget="${menu.id}"]`);
@@ -116,7 +140,11 @@ const netHref = (v: number) => `${base}mreza/?v=${book.slug}.${ch}.${v}`;
     menu.style.top = `${Math.max(top, 12)}px`;
   }
   document.querySelectorAll<HTMLElement>('.refmenu').forEach((menu) => {
-    menu.addEventListener('toggle', (e) => { if ((e as ToggleEvent).newState === 'open') place(menu); });
+    menu.addEventListener('toggle', (e) => {
+      const opened = (e as ToggleEvent).newState === 'open';
+      document.querySelector<HTMLElement>(`.branch[popovertarget="${menu.id}"]`)?.setAttribute('aria-expanded', String(opened));
+      if (opened) place(menu);
+    });
     // a reference in the same chapter only changes the hash: close the menu ourselves
     menu.querySelectorAll('a').forEach((a) => a.addEventListener('click', () => menu.hidePopover()));
   });

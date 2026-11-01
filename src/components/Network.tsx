@@ -1,4 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
+import { Component, type ComponentChildren } from 'preact';
+import { gsap } from 'gsap';
+import Lenis from 'lenis';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import ArcDiagram from './ArcDiagram';
 import {
   adjacency, bookIndexOfVerse, chapterHref, chapterOf, findVerse, refLabel, reverseRefs, verseOf,
@@ -12,6 +16,19 @@ const CX = 340, CY = 320, R = 240;               // radial graph geometry (viewB
 const MAX_NODES = 18;
 const DIR: Record<Link['dir'], string> = { out: 'navodi', in: 'navodi ga', both: 'obostrano' };
 const fmt = (x: number) => x.toLocaleString('hr-HR');
+
+class DiagramBoundary extends Component<{ poster: string; children: ComponentChildren }, { failed: boolean }> {
+  state = { failed: false };
+  componentDidCatch(error: unknown) {
+    console.error('Ne mogu prikazati interaktivni dijagram:', error);
+    this.setState({ failed: true });
+  }
+  render() {
+    return this.state.failed
+      ? <img class="diagram-error-poster" src={this.props.poster} alt="Lučni prikaz unakrsnih referenci kroz svih 66 knjiga Biblije" width="1200" height="560" />
+      : this.props.children;
+  }
+}
 
 function useGraph(base: string) {
   const [g, setG] = useState<null | (GraphData & { vb: Int16Array; rev: number[][]; nRefs: number })>(null);
@@ -28,7 +45,7 @@ function useGraph(base: string) {
   return { g, err };
 }
 
-export default function Network({ base }: { base: string }) {
+export default function Network({ base, poster }: { base: string; poster: string }) {
   const { g, err } = useGraph(base);
   const [center, setCenter] = useState(-1);
   const [mode, setMode] = useState<'direct' | 'similar'>('direct');
@@ -38,6 +55,8 @@ export default function Network({ base }: { base: string }) {
   const [texts, setTexts] = useState<Record<number, string[]>>({});
   const loading = useRef(new Set<number>());
   const adjCache = useRef(new Map<string, Map<number, Link>>());
+  const networkRoot = useRef<HTMLDivElement>(null);
+  const motionStarted = useRef(false);
 
   const adj = (i: number, v: number) => {
     const key = `${i}:${v}`;
@@ -120,8 +139,70 @@ export default function Network({ base }: { base: string }) {
     });
   }, [g, center, nb]);
 
-  if (err) return <p class="loading">Podatke nije moguće učitati ({err}).</p>;
-  if (!g || center < 0) return <p class="loading">Učitavam mrežu unakrsnih referenci…</p>;
+  useEffect(() => {
+    if (!g || center < 0 || motionStarted.current || !networkRoot.current) return;
+    motionStarted.current = true;
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    if (reduceMotion.matches) return;
+
+    gsap.registerPlugin(ScrollTrigger);
+    const lenis = new Lenis({ lerp: 0.09, smoothWheel: true });
+    lenis.on('scroll', ScrollTrigger.update);
+    const tick = (time: number) => lenis.raf(time * 1000);
+    gsap.ticker.add(tick);
+    gsap.ticker.lagSmoothing(0);
+
+    const heading = networkRoot.current.querySelector<HTMLElement>('.net-hero h1');
+    if (heading) {
+      const name = heading.textContent?.replace(/\s+/g, ' ').trim() || '';
+      heading.setAttribute('aria-label', name);
+      heading.innerHTML = name.split(' ').map((word) => `<span class="hero-word" aria-hidden="true">${word}</span>`).join(' ');
+    }
+
+    const ctx = gsap.context(() => {
+      gsap.timeline({ defaults: { ease: 'power3.out' } })
+        .from('.net-hero h1 .hero-word', { yPercent: 115, autoAlpha: 0, duration: 0.7, stagger: 0.055 })
+        .from('.net-hero > div > p:last-child, .stats', { y: 16, autoAlpha: 0, duration: 0.55, stagger: 0.1 }, '-=0.3');
+      gsap.from('.arc-panel', { y: 20, autoAlpha: 0, duration: 0.75, ease: 'power2.out', delay: 0.25 });
+      gsap.from('.net-grid', { y: 22, autoAlpha: 0, duration: 0.75, ease: 'power2.out', scrollTrigger: { trigger: '.net-grid', start: 'top 85%', once: true } });
+    }, networkRoot);
+    ScrollTrigger.refresh();
+    document.fonts?.ready.then(() => ScrollTrigger.refresh());
+    const onVisibility = () => { if (document.hidden) gsap.ticker.sleep(); else gsap.ticker.wake(); };
+    document.addEventListener('visibilitychange', onVisibility);
+    let stopped = false;
+    const stop = () => {
+      if (stopped) return;
+      stopped = true;
+      ctx.revert();
+      lenis.destroy();
+      gsap.ticker.remove(tick);
+      document.removeEventListener('visibilitychange', onVisibility);
+      reduceMotion.removeEventListener('change', onMotionPreference);
+    };
+    const onMotionPreference = (event: MediaQueryListEvent) => { if (event.matches) stop(); };
+    reduceMotion.addEventListener('change', onMotionPreference);
+    const cleanup = () => {
+      reduceMotion.removeEventListener('change', onMotionPreference);
+      stop();
+    };
+    return cleanup;
+  }, [Boolean(g), center >= 0]);
+
+  if (err || !g || center < 0) return (
+    <div class="network-fallback">
+      <section class="net-hero" aria-labelledby="network-page-title">
+        <div>
+          <p class="overline">Biblijski atlas povezanosti</p>
+          <h1 id="network-page-title">Svi su stihovi povezani.</h1>
+          <p>Pratite svaki redak od Postanka do Otkrivenja. Odaberite mjesto na luku za istraživanje njegovih izravnih referenci ili srodnih stihova.</p>
+        </div>
+        <p class="network-status" role="status">{err ? `Podatke nije moguće učitati (${err}).` : 'Učitavam interaktivnu mrežu…'}</p>
+      </section>
+      <img src={poster} alt="Lučni prikaz unakrsnih referenci kroz svih 66 knjiga Biblije" width="1200" height="560" fetchpriority="high" />
+      <p class="network-fallback-link"><a href={`${base}iv/3/`}>Čitajte Ivan 3</a><span>·</span><a href={`${base}#whole-network`}>Istražite mrežu na početnoj stranici</a></p>
+    </div>
+  );
 
   const { books, vb, k } = g;
   const n = k.length;
@@ -173,26 +254,29 @@ export default function Network({ base }: { base: string }) {
 
   return (
     <>
-      <section class="net-hero">
+      <div class="network-content" ref={networkRoot}>
+      <section class="net-hero" aria-labelledby="network-page-title">
         <div>
-          <p class="overline">Unakrsne reference</p>
-          <h1>Kako se Pismo poziva samo na sebe</h1>
-          <p>Svaki luk je jedna unakrsna referenca, od Postanka do Otkrivenja; boja kazuje koliko su povezani retci udaljeni. Ispod je graf odabranog retka: izravne veze ili stihovi srodni po zajedničkim referencama.</p>
+          <p class="overline">Biblijski atlas povezanosti</p>
+          <h1 id="network-page-title">Svi su stihovi povezani.</h1>
+          <p>Pratite svaki redak od Postanka do Otkrivenja. Odaberite mjesto na luku da biste otvorili njegove izravne reference ili pronašli stihove koji mu nalikuju.</p>
         </div>
         <dl class="stats">
           <dt>knjiga</dt><dd>66</dd>
           <dt>redaka</dt><dd>{fmt(n)}</dd>
-          <dt>veza</dt><dd>{fmt(g.nRefs)}</dd>
+          <dt>zapisa referenci</dt><dd>{fmt(g.nRefs)}</dd>
         </dl>
       </section>
 
-      <ArcDiagram books={books} k={k} r={g.r} vb={vb} center={center} neighbours={neighbourIds}
-        hover={hover} onHover={setHover} onPick={go} />
+      <DiagramBoundary poster={poster}>
+        <ArcDiagram books={books} k={k} r={g.r} vb={vb} center={center} neighbours={neighbourIds}
+          hover={hover} onHover={setHover} onPick={go} theme="paper" poster={poster} />
+      </DiagramBoundary>
 
       <section class="net-grid">
         <div class="panel graph-panel">
           <div class="panel-head">
-            <h2>Graf retka {ref(center)}</h2>
+            <div><p class="overline">Veze ovog retka</p><h2>Graf retka {ref(center)}</h2></div>
             <div class="seg small" role="group" aria-label="Vrsta veze">
               <button type="button" aria-pressed={isDirect} onClick={() => { setMode('direct'); setHover(-1); }}>Izravne reference</button>
               <button type="button" aria-pressed={!isDirect} onClick={() => { setMode('similar'); setHover(-1); }}>Srodni stihovi</button>
@@ -203,7 +287,7 @@ export default function Network({ base }: { base: string }) {
             {chords.map((c) => {
               const hot = hoverChord === c.key, touches = hover === c.a || hover === c.b;
               const o = hot ? 1 : chordEnds.length ? 0.05 : hover === -1 ? 0.35 : touches ? 0.8 : 0.06;
-              return <path d={c.d} fill="none" stroke={hot ? '#fff' : 'var(--cross)'} opacity={o} stroke-width={Math.min(1 + c.v / 40, 3) + (hot ? 1.5 : 0)} pointer-events="none" />;
+              return <path d={c.d} fill="none" stroke={hot ? '#191916' : 'var(--cross)'} opacity={o} stroke-width={Math.min(1 + c.v / 40, 3) + (hot ? 1.5 : 0)} pointer-events="none" />;
             })}
             {ordered.map((x) => {
               const [px, py] = pos.get(x.i)!, t = x.w / maxW, hot = hover === x.i;
@@ -225,7 +309,7 @@ export default function Network({ base }: { base: string }) {
                 <g style="cursor:pointer" onMouseEnter={enter(x.i)} onMouseLeave={leave} onClick={() => go(x.i)}>
                   <title>{`${ref(x.i, x.span)} — ${text(x.i)}`}</title>
                   <circle cx={px} cy={py} r="22" fill="transparent" />
-                  <circle cx={px} cy={py} r={6 + 9 * t + (hot ? 2 : 0)} fill={color(x.i)} stroke={hot ? '#fff' : 'var(--card)'} stroke-width="2" />
+                  <circle cx={px} cy={py} r={6 + 9 * t + (hot ? 2 : 0)} fill={color(x.i)} stroke={hot ? '#191916' : 'var(--card)'} stroke-width="2" />
                   <text x={CX + (R + 22) * cos} y={CY + (R + 22) * Math.sin(ang)} fill={dim ? '#6e6a62' : 'var(--ink)'} font-size="14" font-weight="500"
                     text-anchor={Math.abs(cos) < 0.2 ? 'middle' : cos > 0 ? 'start' : 'end'} dominant-baseline="middle">{ref(x.i, x.span)}</text>
                 </g>
@@ -296,6 +380,7 @@ export default function Network({ base }: { base: string }) {
           </ul>
         </aside>
       </section>
+      </div>
     </>
   );
 }

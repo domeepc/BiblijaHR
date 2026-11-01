@@ -46,13 +46,26 @@ export function initPicker() {
     box.v.btn.disabled = draft.ch == null;
   }
 
-  function place(panel: HTMLElement) {
+  function place(k: Key, panel: HTMLElement) {
+    const btn = box[k].btn;
     panel.style.left = '0px';
+    panel.style.top = 'calc(100% + 6px)';
+    panel.style.bottom = 'auto';
     const r = panel.getBoundingClientRect();
     let shift = 0;
     if (r.right > window.innerWidth - 12) shift = window.innerWidth - 12 - r.right;
     if (r.left + shift < 12) shift = 12 - r.left;
     panel.style.left = `${shift}px`;
+    const anchor = btn.getBoundingClientRect();
+    const below = window.innerHeight - anchor.bottom - 12;
+    const above = anchor.top - 12;
+    if (r.bottom > window.innerHeight - 12 && above > below) {
+      panel.style.top = 'auto';
+      panel.style.bottom = 'calc(100% + 6px)';
+      panel.style.maxHeight = `${Math.max(120, Math.min(560, above))}px`;
+    } else {
+      panel.style.maxHeight = `${Math.max(120, Math.min(560, below))}px`;
+    }
   }
 
   function openPanel(k: Key) {
@@ -64,7 +77,7 @@ export function initPicker() {
     if (k === 'v') renderVerses();
     panel.hidden = false;
     btn.setAttribute('aria-expanded', 'true');
-    place(panel);
+    place(k, panel);
     if (k === 'book') { filter.value = ''; filter.focus(); }
     else (panel.querySelector<HTMLElement>('[aria-current="true"]') ?? panel.querySelector<HTMLElement>('.pick-grid button'))?.focus();
   }
@@ -238,7 +251,7 @@ export function initPicker() {
   root.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && open) { e.preventDefault(); dismiss(false); }
   });
-  window.addEventListener('resize', () => { if (open) place(box[open].panel); });
+  window.addEventListener('resize', () => { if (open) place(open, box[open].panel); });
   window.addEventListener('hashchange', () => {
     if (onNet || cur.b == null) return;
     cur = { ...cur, v: hashVerse() };

@@ -9,11 +9,13 @@ Treba Node.js ≥ 22.23 i Python 3.
 ```sh
 npm install
 npm run data      # preuzima CroSaric + cross_references sa scrollmapper/bible_databases i gradi podatke
+npm run poster    # osvježava statični prikaz cijele mreže (Pillow za Python)
 npm run dev       # http://localhost:4321
 npm run build     # statična stranica u dist/
 ```
 
 `npm run data` sprema sirove datoteke u `data/raw/` (preuzimaju se samo jednom), a izlaz u `data/generated/` (za build) i `public/data/` (za mrežu u pregledniku).
+Nakon promjene grafa ponovno pokrenite `npm run poster` kako bi se osvježio prikaz mreže bez JavaScripta.
 
 ## Struktura
 
