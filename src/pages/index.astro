@@ -1,18 +1,168 @@
 ---
+import { Image } from 'astro:assets';
+import heroImage from '../assets/scripture-atlas-hero.webp';
 import Base from '../layouts/Base.astro';
+import ArrowUpRight from '../components/ArrowUpRight.astro';
+import NetworkOverview from '../components/NetworkOverview';
+import { getBible, linksOf, snippet } from '../lib/bible';
+import { chapterHref, chapterOf, refLabel, verseOf } from '../lib/shared';
 
 const base = import.meta.env.BASE_URL.endsWith('/') ? import.meta.env.BASE_URL : import.meta.env.BASE_URL + '/';
+const B = getBible();
+const bookIndex = B.books.findIndex((book) => book.slug === 'iv');
+const sampleBook = B.books[bookIndex];
+const sampleIndex = sampleBook.s + B.k.slice(sampleBook.s, sampleBook.s + sampleBook.c).findIndex((key) => key === 3016);
+const sampleChapter = chapterOf(B.k, sampleIndex);
+const sampleVerse = verseOf(B.k, sampleIndex);
+const sampleRef = refLabel(B.books, B.vb, B.k, sampleIndex);
+const sampleLinks = linksOf(sampleIndex).slice(0, 4).map((link) => ({
+  ref: refLabel(B.books, B.vb, B.k, link.i, link.span),
+  text: snippet(B.v[link.i], 115),
+  color: B.books[B.vb[link.i]].t ? 'new' : 'old',
+  href: chapterHref(base, B.books[B.vb[link.i]], chapterOf(B.k, link.i), verseOf(B.k, link.i)),
+}));
+const testaments = [
+  { title: 'Stari zavjet', count: B.books.filter((book) => !book.t).length, books: B.books.filter((book) => !book.t) },
+  { title: 'Novi zavjet', count: B.books.filter((book) => book.t).length, books: B.books.filter((book) => book.t) },
+];
 ---
 <Base title="Šarićeva Biblija – mreža stihova" page="home">
-  <main class="wrap home">
-    <section class="hero">
-      <p class="overline">Biblija · prijevod Ivana Šarića</p>
-      <h1>Čitajte Pismo i pratite<br>kako se poziva samo na sebe</h1>
-      <p>Uz svaki redak raste grana s njegovim unakrsnim referencama. Mreža prikazuje kako su knjige i stihovi povezani kroz cijelu Bibliju. Knjigu, glavu ili redak odaberite u polju iznad.</p>
-      <div class="hero-actions">
-        <a class="pill-link" href={`${base}post/1/`} data-read-link>Počni čitati</a>
-        <a class="pill-link" href={`${base}mreza/`}>Otvori mrežu</a>
+  <main class="atlas-home">
+    <section class="atlas-hero" aria-labelledby="home-title">
+      <div class="atlas-hero-image" aria-hidden="true">
+        <!-- Original hero photography generated for this project; no third-party media. -->
+        <Image src={heroImage} alt="" fetchpriority="high" />
       </div>
+      <div class="atlas-hero-content">
+        <h1 id="home-title">Svaki redak<br>vodi dalje.</h1>
+        <p class="atlas-intro">Čitajte Bibliju u prijevodu Ivana Šarića i pratite kako se njezini stihovi povezuju — od Postanka do Otkrivenja.</p>
+        <div class="atlas-actions">
+          <a class="atlas-primary" href={`${base}post/1/`} data-read-link>Počni čitati <ArrowUpRight /></a>
+          <a class="atlas-secondary" href={`${base}mreza/`}>Istraži mrežu <ArrowUpRight /></a>
+        </div>
+        <p class="atlas-caption">66 knjiga <span>·</span> jedan povezani tekst</p>
+      </div>
+      <div class="hero-index" aria-hidden="true"><span>ATLAS STIHOVA</span><span>01 — 66</span></div>
+    </section>
+
+    <NetworkOverview client:load base={base} poster={`${base}images/full-network-poster.webp`} />
+
+    <section class="verse-feature" aria-labelledby="verse-title">
+      <div class="verse-copy">
+        <p class="section-label">Izabran redak <span>{sampleRef}</span></p>
+        <h2 id="verse-title">{B.v[sampleIndex]}</h2>
+        <a class="text-link" href={chapterHref(base, sampleBook, sampleChapter, sampleVerse)}>Čitajte {sampleBook.n} {sampleChapter} <ArrowUpRight /></a>
+      </div>
+      <div class="verse-links">
+        <p class="section-label">Povezani stihovi</p>
+        <ol>
+          {sampleLinks.map((link) => (
+            <li><a href={link.href}>
+              <span class={`link-dot ${link.color}`} aria-hidden="true"></span>
+              <span class="link-ref">{link.ref}</span>
+              <span class="link-text">„{link.text}”</span>
+              <ArrowUpRight />
+            </a></li>
+          ))}
+        </ol>
+        <a class="text-link" href={`${base}mreza/?v=${sampleBook.slug}.${sampleChapter}.${sampleVerse}`}>Istražite veze ovog retka <ArrowUpRight /></a>
+      </div>
+    </section>
+
+    <section class="book-index" id="knjige" aria-labelledby="books-title">
+      <div class="index-heading"><h2 id="books-title">Sve knjige Biblije</h2><p>Odaberite knjigu, pa otvorite bilo koju glavu.</p></div>
+      <div class="testament-columns">
+        {testaments.map((testament, index) => (
+          <section class={`testament-list ${index ? 'new-testament' : 'old-testament'}`} aria-labelledby={`testament-${index}`}>
+            <div class="testament-heading"><h3 id={`testament-${index}`}>{testament.title}</h3><span>{testament.count} knjiga</span></div>
+            <div class="book-columns">
+              {testament.books.map((book) => (
+                <details class="book-entry">
+                  <summary><span>{book.n}</span><span class="book-count">{book.chs.length} gl.</span></summary>
+                  <div class="chapter-list" aria-label={`Glave knjige ${book.n}`}>
+                    {book.chs.map((chapter) => <a href={`${base}${book.slug}/${chapter}/`} aria-label={`${book.n}, ${chapter}. glava`}>{chapter}</a>)}
+                  </div>
+                </details>
+              ))}
+            </div>
+          </section>
+        ))}
+      </div>
+    </section>
+
+    <section class="closing-call" aria-labelledby="closing-title">
+      <div><p class="section-label">Čitanje · reference · kontekst</p><h2 id="closing-title">Jedan stih.<br>Cijela priča.</h2><p>Čitajte redak po redak i otkrijte kamo vas vode njegove veze.</p></div>
+      <div class="closing-actions"><a class="atlas-primary" href={`${base}post/1/`} data-read-link>Počni čitati <ArrowUpRight /></a><a class="atlas-secondary" href={`${base}mreza/`}>Otvori mrežu <ArrowUpRight /></a></div>
+      <div class="closing-mark" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
     </section>
   </main>
 </Base>
+
+<script>
+  import { gsap } from 'gsap';
+  import Lenis from 'lenis';
+  import { ScrollTrigger } from 'gsap/ScrollTrigger';
+
+  gsap.registerPlugin(ScrollTrigger);
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+  if (!reduceMotion.matches) {
+    const lenis = new Lenis({ lerp: 0.09, smoothWheel: true, allowNestedScroll: true });
+    lenis.on('scroll', ScrollTrigger.update);
+    const tick = (time: number) => lenis.raf(time * 1000);
+    gsap.ticker.add(tick);
+    gsap.ticker.lagSmoothing(0);
+
+    const heading = document.querySelector<HTMLElement>('.atlas-hero-content h1');
+    if (heading) {
+      heading.setAttribute('aria-label', heading.textContent?.replace(/\s+/g, ' ').trim() || '');
+      [...heading.childNodes].forEach((node) => {
+        if (node.nodeType !== Node.TEXT_NODE || !node.textContent?.trim()) return;
+        const words = node.textContent.trim().split(/\s+/);
+        const fragment = document.createDocumentFragment();
+        words.forEach((word, index) => {
+          const span = document.createElement('span');
+          span.className = 'hero-word';
+          span.setAttribute('aria-hidden', 'true');
+          span.textContent = word;
+          fragment.append(span);
+          if (index < words.length - 1) fragment.append(' ');
+        });
+        node.replaceWith(fragment);
+      });
+    }
+
+    const ctx = gsap.context(() => {
+      const hero = gsap.timeline({ defaults: { ease: 'power3.out' } });
+      hero.from('.hero-word', { yPercent: 115, autoAlpha: 0, duration: 0.7, stagger: 0.055 })
+        .from('.atlas-intro', { y: 18, autoAlpha: 0, duration: 0.65 }, '-=0.48')
+        .from('.atlas-actions, .atlas-caption', { y: 12, autoAlpha: 0, duration: 0.5, stagger: 0.1 }, '-=0.35')
+        .from('.atlas-hero-image img', { scale: 1.04, duration: 1.2 }, 0);
+
+      gsap.from('.verse-copy, .verse-links', { y: 30, autoAlpha: 0, duration: 0.75, stagger: 0.12, ease: 'power2.out', scrollTrigger: { trigger: '.verse-feature', start: 'top 82%', once: true } });
+      gsap.from('.testament-list', { y: 24, autoAlpha: 0, duration: 0.65, stagger: 0.14, ease: 'power2.out', scrollTrigger: { trigger: '.testament-columns', start: 'top 86%', once: true } });
+      gsap.from('.closing-call > div:first-child, .closing-actions', { y: 22, autoAlpha: 0, duration: 0.7, stagger: 0.12, ease: 'power2.out', scrollTrigger: { trigger: '.closing-call', start: 'top 85%', once: true } });
+    });
+    ScrollTrigger.refresh();
+    document.fonts?.ready.then(() => ScrollTrigger.refresh());
+    window.addEventListener('load', () => ScrollTrigger.refresh(), { once: true });
+    const mapObserver = new ResizeObserver(() => ScrollTrigger.refresh());
+    const networkSection = document.querySelector('.atlas-network');
+    if (networkSection) mapObserver.observe(networkSection);
+    const onVisibility = () => { if (document.hidden) gsap.ticker.sleep(); else gsap.ticker.wake(); };
+    document.addEventListener('visibilitychange', onVisibility);
+    let stopped = false;
+    const stopMotion = () => {
+      if (stopped) return;
+      stopped = true;
+      ctx.revert();
+      lenis.destroy();
+      gsap.ticker.remove(tick);
+      document.removeEventListener('visibilitychange', onVisibility);
+      mapObserver.disconnect();
+      reduceMotion.removeEventListener('change', onMotionPreference);
+    };
+    const onMotionPreference = (event: MediaQueryListEvent) => { if (event.matches) stopMotion(); };
+    reduceMotion.addEventListener('change', onMotionPreference);
+    document.addEventListener('astro:before-swap', stopMotion, { once: true });
+  }
+</script>
